@@ -4,7 +4,8 @@
 > Latest slides: https://hpc.utdallas.edu/systems-resources/juno/
 > User guide: https://utdallas-hpc-juno-ug.readthedocs-hosted.com/
 > Support: circ-assist@utdallas.edu (AD 3.207, weekdays 9:30–15:30)
-> **Facts below can drift — when a command disagrees with this sheet, trust the live system (`sinfo`, `sshare`, `module avail`) and update this sheet.**
+> **Facts below can drift — when a command disagrees with this sheet, trust the live system and update it.**
+> **Live verification 2026-08-06 is cached in `juno-live.md`** — read that first; it records confirmed values and the few partition drifts.
 
 ## 1. Access
 
@@ -70,15 +71,15 @@ Three systems: **Scratch** (very high-performance, for I/O during batch jobs), *
 | `a30-4.6gb` | 2 days | 1 | 1 | 128 | 1,024 GB | 8 quarter-A30 virtual | 6 GB |
 | `vdi` | 8 h | 2 | 1 | 64 | 384 GB | — | — (GUI/interactive) |
 
-- **Default memory limit if `--mem` unspecified: 64 GB** (orientation value; exact SLURM semantics unverified — **always set `--mem` explicitly**, never rely on the default).
+- **Default memory limit if `--mem` unspecified: 64 GB** — VERIFIED live 2026-08-06 (`DefMemPerNode = 65536` MB, per node). **Always set `--mem` explicitly.**
 - GPUs require `--gres=gpu:<n>`.
 - Partition guidance: compiling/debug/profiling → `dev`; production CPU → `normal`; light GPU → `a30*`; big GPU → `h100`/`h200`; GUI → `vdi` (or OOD).
 
 ## 6. User limits (per user, orientation values)
 
 - Max nodes per job: **8**
-- Max **running** jobs: **4**
-- Max **submitted** (queued+running) jobs: **100**
+- Max **running** jobs: **4** · Max **submitted** jobs: **100** (VERIFIED live: QOS `juno` MaxJobsPU=4 / MaxSubmitPU=100)
+- **QOS `juno-dev` allows only 1 running dev job** (not in the deck; see `juno-live.md`)
 - Limits can be temporarily relaxed for demonstrated-efficient codes: email circ-assist@utdallas.edu.
 
 ## 7. Scheduling priority & fairshare (the "good citizen" math)
@@ -87,7 +88,7 @@ Three systems: **Scratch** (very high-performance, for I/O during batch jobs), *
 priority = 100,000 × Fairshare + 1,000 × JobAge + 1,000 × JobSize
 ```
 
-(Weights are orientation-slide values — treat as directionally exact, verify with `sprio`/`scontrol show config | grep -i Priority` if precision matters. The takeaway is robust either way: fairshare dominates by ~100×.)
+(VERIFIED live 2026-08-06: `PriorityWeightFairShare=100000`, `PriorityWeightAge=1000`, `PriorityWeightJobSize=1000` — the formula is exact. Fairshare dominates by 100×.)
 
 - `Fairshare` ∈ [0,1], **shared at the research-group level**; all group members start at 1.0.
 - Using the cluster **decreases** the share; idle time restores it — **fully restored in ~2 weeks**; reset to 1.0 at the start of each month.

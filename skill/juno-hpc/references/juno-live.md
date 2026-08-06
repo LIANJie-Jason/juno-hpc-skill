@@ -60,7 +60,29 @@ cuda/11.7, 12.4, 12.6, 13.0, 13.3
 ```
 Every module name the templates load exists. CUDA now goes to 13.3 (the deck showed 12.4 as default); templates use bare `module load cuda`, which resolves to the site default.
 
+## R environment (verified in a real job on `c-01-01`)
+
+```
+R 4.5.0 · BLAS/LAPACK: /opt/ohpc/pub/libs/gnu14/openblas/0.3.29/lib/libopenblasp-r0.3.29.so
+Default modules in-job: autotools, prun/2.2, gnu14/14.2.0, hwloc, ucx, libfabric,
+                        openmpi5/5.0.7, ohpc, openblas/0.3.29, R/4.5.0
+```
+**OpenBLAS confirmed** (the `software-recipes.md` guess was right). The Mac's Accelerate BLAS is still faster per core for mgcv/lm — offload for *width*, not single-thread speed. Thread pinning verified working: `SLURM_CPUS_PER_TASK=4` → `R_DATATABLE_NUM_THREADS=4`.
+
+## End-to-end test run — 2026-08-06
+
+| Step | Result |
+|---|---|
+| `init` / `push` / `gen` | exit 0; payload digest `62e436f36c95c29e` |
+| `submit --smoke` → job **318109** (`dev`, 4c/8G/15m) | COMPLETED, 2 s, MaxRSS 77 MB |
+| `wait` / `post` / `fetch` | exit 0; results + replication capture returned intact |
+| production `submit` → job **318112** (`normal`, 8c/16G/1h) | COMPLETED — smoke gate correctly unlocked it |
+| edit script → production `submit` | **BLOCKED** (digest changed to `b7a7122311a81269`) — gate works on real hardware |
+| scratch after both jobs | empty — the trap cleanup left nothing behind |
+| fairshare cost | 0.971448 → 0.971448 (`FS_DROP=0.000`) |
+
+Right-sizing feedback loop worked: `post` reported `SUGGEST_MEM=4G` against an 8 G/16 G request (`UTIL=0%`), i.e. both jobs were over-provisioned — exactly the signal the tool exists to surface.
+
 ## Still unverified
 - Compute-node internet access (decides where package installs can run).
 - Stata MP licensed core count (`c(processors_lic)`).
-- R's BLAS backend (`sessionInfo()`).

@@ -26,7 +26,7 @@ RENV_PATHS_CACHE=~/work/renv/cache
 - brms: `brm(chains=4, cores=4, threads=threading(cpus/4), backend="cmdstanr", seed=<seed>)`; request `cpus = chains × threads_per_chain`.
 - mgcv: `bam(..., discrete=TRUE, nthreads=Sys.getenv("SLURM_CPUS_PER_TASK"))`.
 
-**Honest performance note:** the user's Mac runs Accelerate BLAS (~5× mgcv speedup vs reference); Juno's R likely uses OpenBLAS on EPYC (verify once with `sessionInfo()` on the cluster). Juno wins on *width* (64 cores, 384 GB, multiple concurrent jobs, laptop stays free), not per-core speed. Don't offload single-threaded fits expecting a speedup.
+**Honest performance note:** the user's Mac runs Accelerate BLAS (~5× mgcv speedup vs reference); Juno's R uses **OpenBLAS 0.3.29** on EPYC (verified in-job 2026-08-06). Juno wins on *width* (64 cores, 384 GB, multiple concurrent jobs, laptop stays free), not per-core speed. Don't offload single-threaded fits expecting a speedup.
 
 ## Python
 

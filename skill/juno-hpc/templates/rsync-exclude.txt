@@ -1,0 +1,29 @@
+# Applied to the code/ tree only (that is the sole rsync source), so every pattern here
+# matches paths INSIDE code/. Do NOT add project-level names like data/ or docs/ — those
+# are siblings of code/ and are never synced anyway, and listing them here would wrongly
+# drop legitimate package dirs such as code/data/schema.json.
+.git/
+.git
+.svn/
+.hg/
+.DS_Store
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.env/
+node_modules/
+.Rproj.user/
+.Rhistory
+.RData
+.ipynb_checkpoints/
+renv/library/
+renv/staging/
+renv/local/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.dylib
+*.o
+# NOTE: *.so is deliberately NOT excluded — projects may vendor Linux shared objects

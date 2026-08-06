@@ -1,0 +1,41 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task={{CPUS}}
+#SBATCH --mem={{MEM}}
+#SBATCH --time={{TIME}}
+#SBATCH --partition={{PARTITION}}
+{{GRES_LINE}}
+#SBATCH --job-name={{NAME}}
+#SBATCH --output=%x-%j.out
+set -euo pipefail
+
+{{MODULES_EXTRA}}
+module list
+
+PROJ=$HOME/work/juno-projects/{{SLUG}}
+# immutable per-payload code snapshot: a later push cannot change what THIS job runs
+CODE_SRC=$PROJ/snapshots/{{PAYLOAD_DIGEST}}/code
+RESULTS=$PROJ/results
+mkdir -p "$RESULTS"
+
+SCRATCH=$HOME/scratch/{{SLUG}}-$SLURM_JOB_ID
+# NOTE: an EXIT trap cannot fire on node failure or a forced kill - juno.sh clean-scratch sweeps orphans.
+cleanup() {
+  if cp -R "$SCRATCH"/results/. "$RESULTS"/; then rm -rf "$SCRATCH"
+  else
+    echo "ERROR: copy-out failed - scratch preserved at $SCRATCH (45-day purge; recover promptly)" >&2
+    exit 1          # make the job FAIL so wait/fetch never treat undelivered results as success
+  fi
+}
+trap cleanup EXIT
+mkdir -p "$SCRATCH"/results "$SCRATCH"/tmp
+cd "$SCRATCH"
+export TMPDIR=$SCRATCH/tmp
+cp -R "$CODE_SRC" ./code
+[ -d "$PROJ"/data ] && cp -R "$PROJ"/data .
+
+mkdir -p results/replication
+{ module list 2>&1; hostname; } > results/replication/environment_juno_${SLURM_JOB_ID}.txt
+
+bash "{{SCRIPT}}" {{ARGS}}

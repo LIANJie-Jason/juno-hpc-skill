@@ -1,0 +1,45 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task={{CPUS}}
+#SBATCH --mem={{MEM}}
+#SBATCH --time={{TIME}}
+#SBATCH --partition={{PARTITION}}
+{{GRES_LINE}}
+#SBATCH --job-name={{NAME}}
+#SBATCH --output=%x-%j.out
+set -euo pipefail
+
+module load stata/19.5 || module load stata
+{{MODULES_EXTRA}}
+module list
+
+PROJ=$HOME/work/juno-projects/{{SLUG}}
+# immutable per-payload code snapshot: a later push cannot change what THIS job runs
+CODE_SRC=$PROJ/snapshots/{{PAYLOAD_DIGEST}}/code
+RESULTS=$PROJ/results
+mkdir -p "$RESULTS"
+
+SCRATCH=$HOME/scratch/{{SLUG}}-$SLURM_JOB_ID
+# NOTE: an EXIT trap cannot fire on node failure or a forced kill - juno.sh clean-scratch sweeps orphans.
+cleanup() {
+  cp -f "$SCRATCH"/*.log "$SCRATCH"/code/*.log "$RESULTS"/ 2>/dev/null || true
+  if cp -R "$SCRATCH"/results/. "$RESULTS"/; then rm -rf "$SCRATCH"
+  else
+    echo "ERROR: copy-out failed - scratch preserved at $SCRATCH (45-day purge; recover promptly)" >&2
+    exit 1          # make the job FAIL so wait/fetch never treat undelivered results as success
+  fi
+}
+trap cleanup EXIT
+mkdir -p "$SCRATCH"/results
+cd "$SCRATCH"
+cp -R "$CODE_SRC" ./code
+[ -d "$PROJ"/data ] && cp -R "$PROJ"/data .
+
+mkdir -p results/replication
+{ stata-mp -q -b 'display c(stata_version)' 2>/dev/null || true; module list 2>&1; hostname; } > results/replication/environment_juno_${SLURM_JOB_ID}.txt
+
+# Stata batch mode (-e): the .log lands next to the do-file (under code/); move it into
+# results/ right away so the guarded copy-out protects it (cleanup's log line is only a fallback)
+stata-mp -e do "{{SCRIPT}}" {{ARGS}}
+cp -f ./*.log code/*.log results/ 2>/dev/null || true

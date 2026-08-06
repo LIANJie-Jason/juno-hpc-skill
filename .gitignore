@@ -1,0 +1,6 @@
+.DS_Store
+.juno/
+.omx/
+*.swp
+hosts
+scratch/

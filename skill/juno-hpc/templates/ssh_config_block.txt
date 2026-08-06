@@ -1,0 +1,13 @@
+# >>> juno-hpc >>>
+Host juno
+  HostName juno.hpcre.utdallas.edu
+  User {{NETID}}
+  ControlMaster auto
+  ControlPath ~/.ssh/cm/%C
+  ControlPersist 8h
+  ServerAliveInterval 60
+  ServerAliveCountMax 3
+  TCPKeepAlive yes
+  AddKeysToAgent yes
+  IdentityFile ~/.ssh/id_ed25519_juno
+# <<< juno-hpc <<<
